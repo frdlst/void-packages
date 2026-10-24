@@ -1,0 +1,70 @@
+Upstream fix for screencast freezing after one frame on compositors using the
+wlr-screencopy backend (wlroots without ext-image-copy-capture-v1).
+
+The stream is connected with PW_STREAM_FLAG_DRIVER, so .process only runs in
+reply to pw_stream_trigger_process(). Only the ext_image_copy backend called
+it, so wlr-screencopy delivered the frame primed at PW_STREAM_STATE_STREAMING
+and then stalled forever.
+
+Upstream commits (squashed, no 0.8.x point release carries them yet):
+  ccd8e62 screencast: Factor out wlr_frame_done
+  c0255d7 screencast: Trigger the graph from the wlr-screencopy backend
+
+diff --git a/src/screencast/wlr_screencopy.c b/src/screencast/wlr_screencopy.c
+index 81beb9e..693ca4c 100644
+--- a/src/screencast/wlr_screencopy.c
++++ b/src/screencast/wlr_screencopy.c
+@@ -32,6 +32,14 @@ static void wlr_frame_finish(struct xdpw_screencast_instance *cast) {
+ 	logprint(TRACE, "wlroots: frame destroyed");
+ }
+ 
++// Ends the current capture cycle: hand the buffer back to PipeWire and drop
++// the wlr frame. We drive the graph, so ask for the next cycle ourselves.
++static void wlr_frame_done(struct xdpw_screencast_instance *cast) {
++	xdpw_pwr_enqueue_buffer(cast);
++	wlr_frame_finish(cast);
++	pw_stream_trigger_process(cast->stream);
++}
++
+ static void wlr_frame_buffer_done(void *data,
+ 		struct zwlr_screencopy_frame_v1 *frame);
+ 
+@@ -137,16 +145,14 @@ static void wlr_frame_buffer_done(void *data,
+ 
+ 	if (!cast->current_frame.xdpw_buffer) {
+ 		logprint(WARN, "wlroots: no current buffer");
+-		xdpw_pwr_enqueue_buffer(cast);
+-		wlr_frame_finish(cast);
++		wlr_frame_done(cast);
+ 		return;
+ 	}
+ 
+ 	if (!check_constraints(&cast->current_constraints, cast->current_frame.xdpw_buffer)) {
+ 		logprint(DEBUG, "wlroots: buffer constraints changed");
+ 		pwr_update_stream_param(cast);
+-		xdpw_pwr_enqueue_buffer(cast);
+-		wlr_frame_finish(cast);
++		wlr_frame_done(cast);
+ 		return;
+ 	}
+ 
+@@ -199,8 +205,7 @@ static void wlr_frame_ready(void *data, struct zwlr_screencopy_frame_v1 *frame,
+ 	cast->current_frame.completed = true;
+ 	logprint(TRACE, "wlroots: timestamp %"PRIu64":%"PRIu32, cast->current_frame.tv_sec, cast->current_frame.tv_nsec);
+ 
+-	xdpw_pwr_enqueue_buffer(cast);
+-	wlr_frame_finish(cast);
++	wlr_frame_done(cast);
+ }
+ 
+ static void wlr_frame_failed(void *data,
+@@ -212,8 +217,7 @@ static void wlr_frame_failed(void *data,
+ 
+ 	logprint(TRACE, "wlroots: failed event handler");
+ 
+-	xdpw_pwr_enqueue_buffer(cast);
+-	wlr_frame_finish(cast);
++	wlr_frame_done(cast);
+ }
+ 
+ static const struct zwlr_screencopy_frame_v1_listener wlr_frame_listener = {

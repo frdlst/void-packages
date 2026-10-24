@@ -1,7 +1,7 @@
 # Template file for 'xdg-desktop-portal-wlr'
 pkgname=xdg-desktop-portal-wlr
 version=0.8.4
-revision=1
+revision=2
 build_style=meson
 configure_args="-Dc_args=-Wno-error"
 hostmakedepends="pkg-config wayland-devel scdoc"
