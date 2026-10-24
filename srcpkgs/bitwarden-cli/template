@@ -1,0 +1,32 @@
+# Template file for 'bitwarden-cli'
+pkgname=bitwarden-cli
+version=2026.10.0
+revision=1
+build_wrksrc=apps/cli
+hostmakedepends="nodejs"
+depends="nodejs"
+short_desc="Bitwarden password manager command-line client"
+maintainer="Orphaned <orphan@voidlinux.org>"
+license="GPL-3.0-only"
+homepage="https://bitwarden.com/help/cli/"
+changelog="https://github.com/bitwarden/clients/releases"
+distfiles="https://github.com/bitwarden/clients/archive/refs/tags/cli-v${version}.tar.gz"
+checksum=a400f7042710daafa7d64ed04461a331c09a8bbb7262c68ce870ff3cbc336ea2
+
+do_configure() {
+	cd "$wrksrc"
+	# only husky and electron-rebuild hooks live here, neither is needed
+	npm ci --ignore-scripts --no-audit --no-fund
+}
+
+do_build() {
+	# OSS build: excludes bitwarden_license/ code
+	npm run build:oss:prod
+}
+
+do_install() {
+	# same artifact upstream publishes to npm as @bitwarden/cli
+	npm pack
+	npm install -g --prefix "${DESTDIR}/usr" --omit=dev --ignore-scripts \
+		--no-audit --no-fund "bitwarden-cli-${version}.tgz"
+}
