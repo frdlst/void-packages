@@ -1,0 +1,2 @@
+#!/bin/sh
+exec vlogger -t forticlient-vpn-nat -p daemon

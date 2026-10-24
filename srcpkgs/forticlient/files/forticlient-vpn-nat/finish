@@ -1,0 +1,2 @@
+#!/bin/sh
+exec nft delete table ip fct_vpn_nat
