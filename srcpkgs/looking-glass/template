@@ -1,0 +1,41 @@
+# Template file for 'looking-glass'
+pkgname=looking-glass
+version=B7
+revision=2
+archs="x86_64*"
+build_wrksrc=client
+build_style=cmake
+# none: upstream otherwise forces -march=native or x86-64-v2
+# backtrace off: libbfd has no stable soname, would silently break on binutils updates
+configure_args="-DOPTIMIZE_FOR_NATIVE=none -DENABLE_BACKTRACE=OFF"
+hostmakedepends="pkg-config wayland-devel"
+makedepends="fontconfig-devel libglvnd-devel spice-protocol nettle-devel gmp-devel
+ libX11-devel libXi-devel libXfixes-devel libXScrnSaver-devel libXinerama-devel
+ libXcursor-devel libXpresent-devel libxkbcommon-devel wayland-devel
+ libdecor-devel pipewire-devel pulseaudio-devel libsamplerate-devel"
+short_desc="Low latency KVMFR client for VGA PCI passthrough"
+maintainer="Orphaned <orphan@voidlinux.org>"
+license="GPL-2.0-or-later"
+homepage="https://looking-glass.io"
+distfiles="https://looking-glass.io/artifact/${version}/source>looking-glass-${version}.tar.gz"
+checksum=09e506660ccc1b9691d06caa70179b52ffb4393299895cff3c2f0e74fcd69985
+# SSE4.1 is upstream's non-AVX2 framebuffer fallback, so it's a hard requirement anyway
+CFLAGS="-msse4.1"
+# must match PACKAGE_VERSION in module/dkms.conf
+_kvmfr_version=0.0.12
+
+post_install() {
+	vmkdir usr/src/kvmfr-${_kvmfr_version}
+	vcopy "${wrksrc}/module/*" usr/src/kvmfr-${_kvmfr_version}
+	vinstall ${FILESDIR}/99-kvmfr.rules 644 usr/lib/udev/rules.d
+}
+
+looking-glass-kvmfr-dkms_package() {
+	short_desc+=" - KVMFR DKMS kernel module"
+	depends="dkms"
+	dkms_modules="kvmfr ${_kvmfr_version}"
+	pkg_install() {
+		vmove usr/src
+		vmove usr/lib/udev
+	}
+}
