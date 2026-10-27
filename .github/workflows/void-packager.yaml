@@ -1,0 +1,27 @@
+# Triggers for https://github.com/frdlst/void-packager (the logic lives there).
+# Fork-only file: never edit upstream workflows, so rebases stay conflict-free.
+name: void-packager
+
+on:
+  pull_request:
+    paths: ['srcpkgs/**']
+  push:
+    branches: [master]
+    paths: ['srcpkgs/**']
+  schedule:
+    - cron: '0 4 * * 1'
+  workflow_dispatch:
+
+jobs:
+  build:
+    if: github.event_name != 'schedule'
+    uses: frdlst/void-packager/.github/workflows/build.yaml@main
+    with:
+      publish: ${{ github.event_name != 'pull_request' }}
+    secrets: inherit
+
+  # A forced push (manual rebase) refreshes open update PRs right away.
+  update:
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || github.event.forced
+    uses: frdlst/void-packager/.github/workflows/update.yaml@main
+    secrets: inherit
