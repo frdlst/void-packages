@@ -1,6 +1,6 @@
 # Template file for 'dotnet10-sdk-bin'
 pkgname=dotnet10-sdk-bin
-version=10.0.401
+version=10.0.403
 revision=1
 _major=${version%%.*}
 archs="x86_64* aarch64*"
@@ -22,19 +22,19 @@ _url="https://builds.dotnet.microsoft.com/dotnet/Sdk/${version}"
 case "$XBPS_TARGET_MACHINE" in
 x86_64)
 	distfiles="${_url}/dotnet-sdk-${version}-linux-x64.tar.gz"
-	checksum=137268c8ad939c064ff1ee2a6fdf0899d8725377114ea012fbd1ad5fa2550418
+	checksum=cd7224fe8e8ba57c15f1601439ff8785a1a72b54ae5c89dd5302a32dcfbddf18
 	;;
 x86_64-musl)
 	distfiles="${_url}/dotnet-sdk-${version}-linux-musl-x64.tar.gz"
-	checksum=17db2731521b0d1bda9a26656433edf6c586f7520e2c171089013dba09833e0f
+	checksum=6c1315fcbb708146991ad30a68519b766729bb6e9bccdfa16449f5277c1a9472
 	;;
 aarch64)
 	distfiles="${_url}/dotnet-sdk-${version}-linux-arm64.tar.gz"
-	checksum=91d3d67f2ed065909bd2e1ba50a37192aff6df15178304939d5b55634d72da6a
+	checksum=21fe1a0963984206bfaeb19968da07e7a61d30c9bc4621b7372a762a30c88679
 	;;
 aarch64-musl)
 	distfiles="${_url}/dotnet-sdk-${version}-linux-musl-arm64.tar.gz"
-	checksum=830d3b4b022453b09b9ecdf59b004e6b032a8a4394b275d47dec175e37030782
+	checksum=6ca08ba2e90bd11a772ef550113fd95671ae9ea2a67e0f07442b6d7cb1fec5f5
 	;;
 *)
 	broken="No distfiles available for this target"
