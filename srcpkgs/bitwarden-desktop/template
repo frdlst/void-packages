@@ -1,6 +1,6 @@
 # Template file for 'bitwarden-desktop'
 pkgname=bitwarden-desktop
-version=2026.10.1
+version=2026.10.2
 revision=1
 # electron-builder bundles upstream's prebuilt (glibc) Electron;
 # Void's electron is too old for what upstream pins
