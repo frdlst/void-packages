@@ -1,0 +1,2 @@
+# Let QEMU (libvirt user) and kvm group members map /dev/kvmfrN
+SUBSYSTEM=="kvmfr", GROUP="kvm", MODE="0660"
