@@ -1,0 +1,61 @@
+#!/bin/sh
+# Lets forwarded traffic (libvirt guests, containers) use the FortiClient tunnel.
+#
+# There is no tunnel interface: the VPN address is assigned as a /32 on the
+# physical link, and the IKE flow selector is "src <that address> -> any", so
+# only packets carrying it get encrypted (see ipsecvpn.log,
+# ikev2_childsa_create_ipv4_split_tun_flows). Forwarded packets keep their own
+# source, miss the XFRM policy, and die on a gateway-less default route. The
+# address comes from the gateway's pool and changes per connection, hence
+# watching netlink instead of setting a static rule.
+#
+# The rule must beat libvirt's MASQUERADE, which would otherwise rewrite guest
+# traffic to the link's primary address: source NAT is applied once per
+# connection, first hook wins. Sitting below the standard srcnat priority wins
+# on every boot, whereas an iptables chain only wins if it is inserted into
+# POSTROUTING ahead of libvirt's, which is a race libvirt eventually wins.
+exec 2>&1
+[ -r ./conf ] && . ./conf
+: "${GUESTS:=192.168.122.0/24}"
+
+drop_table() { nft delete table ip fct_vpn_nat 2>/dev/null || :; }
+
+# A crash skips ./finish, so start from a known state.
+drop_table
+echo "watching for FortiClient tunnel, guests=$GUESTS"
+
+sync_rule() {
+	# The tunnel's default route carries the assigned address as its preferred
+	# source, so this is empty exactly when the tunnel is down.
+	vpn=$(ip -4 route get 1.1.1.1 2>/dev/null | sed -n 's/.*src \([0-9.]*\).*/\1/p')
+	case "$vpn" in
+	10.*|172.1[6-9].*|172.2[0-9].*|172.3[01].*) ;;
+	*) vpn= ;;
+	esac
+
+	[ "$vpn" = "$applied" ] && return
+	applied="$vpn"
+
+	drop_table
+	[ -n "$vpn" ] || { echo "tunnel down: SNAT removed"; return; }
+
+	if nft -f - <<-EOF
+		table ip fct_vpn_nat {
+			chain postrouting {
+				type nat hook postrouting priority srcnat - 10; policy accept;
+				ip saddr $GUESTS ip daddr != $GUESTS snat to $vpn
+			}
+		}
+	EOF
+	then
+		echo "tunnel up: SNAT $GUESTS via $vpn"
+	else
+		echo "tunnel up: FAILED to install SNAT rule for $vpn"
+		applied=
+	fi
+}
+
+# "prime" syncs once at startup; the rest are netlink address events.
+{ echo prime; exec ip -4 monitor address; } | while read -r _; do
+	sync_rule
+done

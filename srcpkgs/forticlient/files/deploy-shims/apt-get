@@ -1,0 +1,32 @@
+#!/bin/sh
+# epctrl installs EMS-pushed upgrades with apt-get. Report success when xbps
+# already provides that version; anything else must be installed through xbps.
+dry=
+for a; do
+	case $a in
+	*.deb) deb=$a ;;
+	--dry-run) dry=1 ;;
+	esac
+done
+want=$(bsdtar xOf "$deb" 'control.tar.*' | bsdtar xOf - ./control | sed -n 's/^Version: //p')
+have=$(xbps-query -p pkgver forticlient)
+have=${have#forticlient-}
+have=${have%_*}
+if [ -n "$want" ] && [ "$want" = "$have" ]; then
+	[ -n "$dry" ] && exit 0
+	# Upstream's postinst marks the deployment complete and restarts the
+	# service; epctrl reports the install to EMS once it is back up. Restart
+	# only once, so a lingering deployment can't bounce the VPN every minute.
+	done=/var/lib/forticlient/deploy/.deploy_complete
+	[ -e "$done" ] && exit 0
+	# EMS installers carry the installer GUID that epctrl reports back; without
+	# it EMS keeps redeploying. Missing from generic installers, hence || :.
+	bsdtar xOf "$deb" 'data.tar.*' | bsdtar xpf - -C / \
+		./etc/forticlient/servers.conf ./opt/forticlient/.repackaged 2>/dev/null || :
+	chmod 600 /etc/forticlient/servers.conf 2>/dev/null
+	touch "$done"
+	setsid -f sv restart forticlient >/dev/null 2>&1
+	exit 0
+fi
+echo "forticlient $want must be installed through xbps (installed: $have)" >&2
+exit 1
