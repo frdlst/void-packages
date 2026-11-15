@@ -1,0 +1,51 @@
+# Template file for 'neovim-nightly'
+pkgname=neovim-nightly
+version=20261115.210958
+revision=1
+_git=https://github.com/neovim/neovim
+_ref=nightly
+_commit=f1d176d1ab6ef728996e6de75135b067465b8ece
+build_style=cmake
+build_helper="qemu"
+configure_args="-DCOMPILE_LUA=OFF -DENABLE_TRANSLATIONS=ON -DPREFER_LUA=$(vopt_if luajit OFF ON)"
+hostmakedepends="gettext patchelf"
+makedepends="libuv-devel libluv-devel libutf8proc-devel tree-sitter-devel unibilium-devel
+ lua51-lpeg $(vopt_if luajit LuaJIT-devel lua51-devel)"
+depends="tree-sitter-c tree-sitter-lua tree-sitter-markdown tree-sitter-query
+ tree-sitter-vim tree-sitter-vimdoc"
+short_desc="Fork of Vim aiming to improve user experience (nightly build)"
+maintainer="frdlst <devel@frdl.st>"
+license="Apache-2.0 AND Vim"
+homepage="https://neovim.io"
+changelog="https://github.com/neovim/neovim/commits/nightly"
+distfiles="${_git}/archive/${_commit}.tar.gz"
+checksum=8b9a9f02e4c9667f72a0df638fb9a75a5d4ee5f1d64001b82a93e87d4e452c8f
+provides="neovim-${version}_${revision}"
+replaces="neovim>=0"
+
+build_options="luajit"
+build_options_default="luajit"
+
+alternatives="
+ vi:vi:/usr/bin/nvim
+ vi:vi.1:/usr/share/man/man1/nvim.1
+ vi:view:/usr/bin/nvim
+ vi:view.1:/usr/share/man/man1/nvim.1
+ vim:vim:/usr/bin/nvim
+ vim:vim.1:/usr/share/man/man1/nvim.1"
+
+# They want assertion
+CFLAGS=-UNDEBUG
+
+post_install() {
+	vlicense LICENSE.txt
+
+	if [ "${CROSS_BUILD}" ]; then
+		patchelf --replace-needed \
+			${XBPS_CROSS_BASE}/usr/lib/lua/5.1/lpeg.so /usr/lib/lua/5.1/lpeg.so \
+			${DESTDIR}/usr/bin/nvim
+	fi
+
+	# put system-provided tree-sitter grammars on runtimepath
+	ln -s "../../../lib/tree-sitter" "${DESTDIR}/usr/share/nvim/runtime/parser"
+}
