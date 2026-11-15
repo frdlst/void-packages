@@ -1,0 +1,52 @@
+# Template file for 'forticlient'
+pkgname=forticlient
+version=7.4.8.1904
+revision=10
+archs="x86_64"
+create_wrksrc=yes
+# gnome-keyring: the GUI stores VPN/SAML credentials through libsecret, so a
+# Secret Service must be D-Bus activatable. libayatana-appindicator is dlopened
+# by fortitray for its tray icon.
+depends="dbus gnome-keyring libayatana-appindicator alsa-lib at-spi2-atk
+ at-spi2-core eudev-libudev gtk+3 libcups libdrm libgbm libnotify libsecret
+ libuuid libxkbcommon nspr nss iptables nftables xdg-utils acl util-linux"
+short_desc="Fortinet endpoint protection and VPN client"
+maintainer="flist <flist@localhost>"
+license="custom:Proprietary"
+homepage="https://www.forticlient.com"
+distfiles="https://repo.fortinet.com/repo/forticlient/${version%.*.*}/ubuntu/pool/non-free/f/forticlient/forticlient_${version}_amd64.deb"
+checksum=8f939c42e9de7c723251277230da913b9f38f93ad2a2535a3ebd77e139bfed81
+repository=nonfree
+restricted=yes
+nostrip=yes
+# /opt is not scanned for shlibs, so bundled libraries can neither be resolved
+# as dependencies nor be advertised as provides (the GUI ships libvulkan).
+noverifyrdeps=yes
+noshlibprovides=yes
+make_dirs="/etc/forticlient 0755 root root
+ /var/lib/forticlient 0755 root root
+ /var/log/forticlient 0755 root root
+ /var/log/forticlient/fmon_log 0755 root root
+ /var/log/forticlient/vcm_log 0755 root root
+ /opt/forticlient/XMLs 0755 root root
+ /opt/forticlient/quarantine 0755 root root"
+
+do_extract() {
+	bsdtar xOf "$XBPS_SRCDISTDIR/$pkgname-$version/forticlient_${version}_amd64.deb" \
+		data.tar.xz | bsdtar xf -
+}
+
+do_install() {
+	vcopy opt /
+	vlicense usr/share/doc/forticlient/copyright
+	rm -rf usr/share/doc
+	vcopy usr /
+
+	# The CLI is the main entry point; upstream's postinst symlinks it too.
+	vmkdir usr/bin
+	ln -s /opt/forticlient/forticlient-cli "$DESTDIR/usr/bin/forticlient"
+
+	vinstall "$FILESDIR/forticlient-os-release-spoof" 644 etc
+	vsv forticlient
+	vsv forticlient-vpn-nat
+}
