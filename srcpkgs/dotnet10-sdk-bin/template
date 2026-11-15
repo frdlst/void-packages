@@ -1,0 +1,61 @@
+# Template file for 'dotnet10-sdk-bin'
+pkgname=dotnet10-sdk-bin
+version=10.0.401
+revision=1
+_major=${version%%.*}
+archs="x86_64* aarch64*"
+create_wrksrc=yes
+depends="icu libgcc libstdc++ openssl zlib"
+short_desc="Microsoft .NET ${_major} SDK - precompiled binaries"
+maintainer="flist <flist@localhost>"
+license="MIT"
+homepage="https://dotnet.microsoft.com/"
+alternatives="dotnet:/usr/bin/dotnet:/usr/lib/dotnet${_major}/dotnet"
+nostrip=yes
+noverifyrdeps=yes
+noshlibprovides=yes
+# move this subpackage to the next major's template when a new LTS ships
+subpackages="dotnet-sdk-lts-bin"
+
+_url="https://builds.dotnet.microsoft.com/dotnet/Sdk/${version}"
+
+case "$XBPS_TARGET_MACHINE" in
+x86_64)
+	distfiles="${_url}/dotnet-sdk-${version}-linux-x64.tar.gz"
+	checksum=137268c8ad939c064ff1ee2a6fdf0899d8725377114ea012fbd1ad5fa2550418
+	;;
+x86_64-musl)
+	distfiles="${_url}/dotnet-sdk-${version}-linux-musl-x64.tar.gz"
+	checksum=17db2731521b0d1bda9a26656433edf6c586f7520e2c171089013dba09833e0f
+	;;
+aarch64)
+	distfiles="${_url}/dotnet-sdk-${version}-linux-arm64.tar.gz"
+	checksum=91d3d67f2ed065909bd2e1ba50a37192aff6df15178304939d5b55634d72da6a
+	;;
+aarch64-musl)
+	distfiles="${_url}/dotnet-sdk-${version}-linux-musl-arm64.tar.gz"
+	checksum=830d3b4b022453b09b9ecdf59b004e6b032a8a4394b275d47dec175e37030782
+	;;
+*)
+	broken="No distfiles available for this target"
+	;;
+esac
+
+do_install() {
+	vmkdir usr/lib/dotnet${_major}
+	vcopy "*" usr/lib/dotnet${_major}
+	rm -f "${DESTDIR}"/usr/lib/dotnet${_major}/LICENSE.txt
+	rm -f "${DESTDIR}"/usr/lib/dotnet${_major}/ThirdPartyNotices.txt
+
+	# versioned entry point; unversioned /usr/bin/dotnet comes from alternatives
+	vmkdir usr/bin
+	ln -s ../lib/dotnet${_major}/dotnet "${DESTDIR}/usr/bin/dotnet${_major}"
+
+	vlicense LICENSE.txt
+}
+
+dotnet-sdk-lts-bin_package() {
+	metapackage=yes
+	depends="${sourcepkg}-${version}_${revision}"
+	short_desc="Microsoft .NET SDK - current LTS release (${_major}.x)"
+}
