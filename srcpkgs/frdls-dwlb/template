@@ -1,0 +1,29 @@
+# Template file for 'frdls-dwlb'
+pkgname=frdls-dwlb
+version=20261010.185110
+revision=1
+_git=https://git.sr.ht/~frdls/dwlb
+_commit=07aae23879f3f086fcef958eb30fbdb5933cc339
+build_style=gnu-makefile
+# Makefile appends to CFLAGS/LDLIBS, which command-line overrides would clobber
+make_use_env=yes
+hostmakedepends="pkg-config wayland-devel"
+makedepends="wayland-devel wayland-protocols fcft-devel pixman-devel"
+short_desc="Feature-complete bar for dwl (frdls's fork)"
+maintainer="frdlst <devel@frdl.st>"
+license="GPL-3.0-or-later"
+homepage="https://git.sr.ht/~frdls/dwlb"
+distfiles="${_git}/archive/${_commit}.tar.gz"
+checksum=d840d120e5afc6a46d4f4af51759f531c0854acc8b49da5c6d129c3b7bc8d290
+subpackages="frdls-dwlb-devel"
+
+do_install() {
+	# install ignores DESTDIR
+	make PREFIX="${DESTDIR}/usr" install
+}
+
+frdls-dwlb-devel_package() {
+	metapackage=yes
+	short_desc+=" - build dependencies"
+	depends="${hostmakedepends} ${makedepends}"
+}
