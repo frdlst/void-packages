@@ -1,0 +1,2 @@
+site="https://dotnetcli.blob.core.windows.net/dotnet/release-metadata/${version%.*}/releases.json"
+pattern='"latest-sdk": "\K[\d.]+'
