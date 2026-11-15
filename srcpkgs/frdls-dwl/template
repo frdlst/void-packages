@@ -1,0 +1,29 @@
+# Template file for 'frdls-dwl'
+pkgname=frdls-dwl
+version=20261115.141258
+revision=1
+_git=https://git.sr.ht/~frdls/dwl
+_commit=8d3f613681f9a2256b8eed243a95a7f705f09079
+build_style=gnu-makefile
+hostmakedepends="pkg-config wayland-devel"
+makedepends="wlroots0.19-devel wayland-devel wayland-protocols libinput-devel
+ libxkbcommon-devel libxcb-devel xcb-util-wm-devel"
+short_desc="Dynamic window manager for Wayland (frdls's fork)"
+maintainer="frdlst <devel@frdl.st>"
+license="GPL-3.0-or-later, MIT, CC0-1.0"
+homepage="https://git.sr.ht/~frdls/dwl"
+distfiles="${_git}/archive/${_commit}.tar.gz"
+checksum=212481fd7b1679474c42c8e5629bdab309afdd6eaac0ab4e1fa4346ad8571b1e
+subpackages="frdls-dwl-devel"
+
+post_install() {
+	vlicense LICENSE.dwm
+	vlicense LICENSE.sway
+	vlicense LICENSE.tinywl
+}
+
+frdls-dwl-devel_package() {
+	metapackage=yes
+	short_desc+=" - build dependencies"
+	depends="${hostmakedepends} ${makedepends}"
+}
