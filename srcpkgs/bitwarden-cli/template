@@ -1,6 +1,6 @@
 # Template file for 'bitwarden-cli'
 pkgname=bitwarden-cli
-version=2026.10.0
+version=2026.10.1
 revision=1
 build_wrksrc=apps/cli
 hostmakedepends="nodejs"
@@ -11,7 +11,7 @@ license="GPL-3.0-only"
 homepage="https://bitwarden.com/help/cli/"
 changelog="https://github.com/bitwarden/clients/releases"
 distfiles="https://github.com/bitwarden/clients/archive/refs/tags/cli-v${version}.tar.gz"
-checksum=a400f7042710daafa7d64ed04461a331c09a8bbb7262c68ce870ff3cbc336ea2
+checksum=ce3b8d2301a07be9138f59817ece7df833fb48eb284185f1cbea074016b912d1
 
 do_configure() {
 	cd "$wrksrc"
