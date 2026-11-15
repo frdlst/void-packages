@@ -1,0 +1,94 @@
+#!/bin/bash
+# sync: fold the fork's package commits into their "New package: <pkg>-<version>"
+# commits and rebase master onto void-linux/void-packages. Never pushes.
+#
+# A commit is folded into New package <pkg> when every file it touches is under
+# srcpkgs/<pkg>/. Commits mixing a fork package with anything else abort the
+# sync; split them first. Commit messages follow CONTRIBUTING.md, "Committing
+# your changes".
+set -euo pipefail
+
+die() { echo "sync: $*" >&2; exit 1; }
+
+cd "$(git rev-parse --show-toplevel)"
+[ "$(git symbolic-ref -q --short HEAD)" = master ] || die "not on master"
+[ -z "$(git status --porcelain -uno)" ] || die "uncommitted changes"
+
+git fetch -q origin
+# ff-only: a diverged master usually means an earlier sync was never pushed.
+git merge -q --ff-only origin/master ||
+	die "master diverged from origin/master; push or reset it first"
+lease=$(git rev-parse origin/master)
+
+url=https://github.com/void-linux/void-packages.git
+if ! have=$(git remote get-url upstream 2>/dev/null); then
+	git remote add upstream "$url"
+elif [ "${have%.git}" != "${url%.git}" ]; then
+	die "remote upstream is $have, expected $url"
+fi
+git fetch -q upstream master
+
+declare -A group
+order=()
+for c in $(git rev-list --reverse --no-merges --cherry-pick --right-only upstream/master...HEAD); do
+	subj=$(git log -1 --format=%s "$c")
+	if [[ $subj =~ ^New\ package:\ ([[:alnum:]._+-]+)-[^-]+$ ]]; then
+		pkg=${BASH_REMATCH[1]}
+		group[$pkg]="pick $c"
+		order+=("@$pkg")
+		continue
+	fi
+	hit= other=
+	# shortcut: subpackage symlinks (srcpkgs/<sub>) count as other files; group them if that ever aborts a sync.
+	while read -r f; do
+		p=${f#srcpkgs/}; p=${p%%/*}
+		if [[ $f == srcpkgs/*/* && -n ${group[$p]+x} ]] && [[ -z $hit || $hit == "$p" ]]; then
+			hit=$p
+		else
+			other=$f
+		fi
+	done < <(git diff-tree --no-commit-id --name-only -r "$c")
+	if [ -n "$hit" ] && [ -n "$other" ]; then
+		die "$(git log -1 --format='%h %s' "$c") touches srcpkgs/$hit/ and $other; split it"
+	elif [ -n "$hit" ]; then
+		group[$hit]+=$'\n'"fixup $c"
+	else
+		order+=("pick $c")
+	fi
+done
+
+todo=$(mktemp)
+trap 'rm -f "$todo"' EXIT
+for e in "${order[@]}"; do
+	if [ "${e:0:1}" != @ ]; then
+		echo "$e"
+		continue
+	fi
+	pkg=${e#@}
+	echo "${group[$pkg]}"
+	ver=$(git show "HEAD:srcpkgs/$pkg/template" 2>/dev/null | sed -n 's/^version=//p') ||
+		die "srcpkgs/$pkg/template is gone; drop its commits by hand"
+	[[ $ver =~ ^[[:alnum:]._+~]+$ ]] || die "$pkg: can't read a literal version= from its template"
+	new="New package: $pkg-$ver"
+	first=${group[$pkg]%%$'\n'*}
+	[ "$(git log -1 --format=%s "${first#pick }")" = "$new" ] && [ "$first" = "${group[$pkg]}" ] && continue
+	# Keep any body of the original commit.
+	echo "exec { echo '$new'; git log -1 --format=%n%b; } | git commit -q --amend -F -"
+done > "$todo"
+
+old=$(git rev-parse HEAD)
+GIT_SEQUENCE_EDITOR="cp '$todo'" git rebase -q -i --no-autosquash --no-update-refs upstream/master ||
+	die "rebase stopped: resolve, \`git rebase --continue\`, then push as below
+	git push --force-with-lease=master:$lease origin master"
+
+if [ "$(git rev-parse HEAD)" = "$lease" ]; then
+	echo "Already in sync with origin/master."
+	exit 0
+fi
+git log --oneline upstream/master..HEAD
+cat <<EOF
+
+Previous tip: $old
+Review, then push (fails if CI pushed to master since this sync started):
+	git push --force-with-lease=master:$lease origin master
+EOF
