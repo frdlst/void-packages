@@ -1,6 +1,6 @@
 # Template file for 'bitwarden-desktop'
 pkgname=bitwarden-desktop
-version=2026.10.1
+version=2026.10.4
 revision=1
 # electron-builder bundles upstream's prebuilt (glibc) Electron;
 # Void's electron is too old for what upstream pins
@@ -15,7 +15,7 @@ license="GPL-3.0-only"
 homepage="https://bitwarden.com"
 changelog="https://github.com/bitwarden/clients/releases"
 distfiles="https://github.com/bitwarden/clients/archive/refs/tags/desktop-v${version}.tar.gz"
-checksum=3dd92f8788684acba5864c4c2a6be594463a57c7aa3473dafb6683b98a245a9b
+checksum=cc209fd9fa10d79c8751c4b635ef6f66f6bbb384fd69d14388f24f8d1f2af67f
 nocross=yes
 nostrip_files="bitwarden-app"
 
