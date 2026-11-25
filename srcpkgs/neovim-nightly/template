@@ -1,10 +1,10 @@
 # Template file for 'neovim-nightly'
 pkgname=neovim-nightly
-version=20261123.024447
+version=20261125.050759
 revision=1
 _git=https://github.com/neovim/neovim
 _ref=nightly
-_commit=b091c9b0a030d78ec58022491c78489826e2763d
+_commit=f8eaa151f6a33d3c8d35b4ccc315f57d76149845
 build_style=cmake
 build_helper="qemu"
 configure_args="-DCOMPILE_LUA=OFF -DENABLE_TRANSLATIONS=ON -DPREFER_LUA=$(vopt_if luajit OFF ON)"
@@ -19,7 +19,7 @@ license="Apache-2.0 AND Vim"
 homepage="https://neovim.io"
 changelog="https://github.com/neovim/neovim/commits/nightly"
 distfiles="${_git}/archive/${_commit}.tar.gz"
-checksum=cce576e61ca8c164871fbf01e936cbf80b47176aef224c207772d72d941427c4
+checksum=7e1a5baedde9f6d952bfd35e13f7554154d291aa9dcc6c1c7e425ff3acf923d6
 provides="neovim-${version}_${revision}"
 replaces="neovim>=0"
 
